@@ -1,0 +1,50 @@
+\begin{thebibliography}{6}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{#1}
+\expandafter\ifx\csname urlstyle\endcsname\relax\else
+  \urlstyle{same}\fi
+\expandafter\ifx\csname href\endcsname\relax
+  \DeclareUrlCommand\doi{\urlstyle{rm}}
+  \def\eprint#1#2{#2}
+\else
+  \def\doi#1{\href{https://doi.org/#1}{\nolinkurl{#1}}}
+  \let\eprint\href
+\fi
+
+\bibitem[{National Bureau of Standards}(1977)]{fips46}
+{National Bureau of Standards}.
+\newblock {Data Encryption Standard (DES)}: FIPS PUB 46\allowbreak[R].
+\newblock Washington, D.C.: {U.S. Department of Commerce}, 1977.
+
+\bibitem[Biham et~al.(1991)Biham and Shamir]{biham1991differential}
+BIHAM E, SHAMIR A.
+\newblock Differential cryptanalysis of des-like cryptosystems\allowbreak[J].
+\newblock Journal of Cryptology, 1991, 4\allowbreak (1): 3-72.
+
+\bibitem[Matsui(1993)]{matsui1993linear}
+MATSUI M.
+\newblock Linear cryptanalysis method for des cipher\allowbreak[C]//\allowbreak
+HELLESETH T.
+\newblock Advances in Cryptology --- EUROCRYPT '93.
+\newblock Springer Berlin Heidelberg, 1993: 386-397.
+
+\bibitem[Gilmore et~al.(1998)Gilmore and Foundation]{eff1998cracking}
+GILMORE J, FOUNDATION E~F.
+\newblock {Cracking DES: Secrets of Encryption Research, Wiretap Politics \& Chip Design}\allowbreak[M].
+\newblock O'Reilly \& Associates, Inc., 1998.
+
+\bibitem[Lai et~al.(1991)Lai and Massey]{lai1991proposal}
+LAI X, MASSEY J~L.
+\newblock A proposal for a new block encryption standard\allowbreak[C]//\allowbreak
+DAVIES D~W.
+\newblock Advances in Cryptology --- EUROCRYPT '91.
+\newblock Springer-Verlag, 1991: 389-404.
+
+\bibitem[Daemen et~al.(1992)Daemen, Govaerts, and Vandewalle]{daemen1992weak}
+DAEMEN J, GOVAERTS R, VANDEWALLE J.
+\newblock Weak keys for idea\allowbreak[C]//\allowbreak
+BRICKELL E~F.
+\newblock Advances in Cryptology --- CRYPTO '92.
+\newblock Springer Berlin Heidelberg, 1992: 224-231.
+
+\end{thebibliography}
