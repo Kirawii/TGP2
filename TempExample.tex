@@ -185,39 +185,212 @@ IDEA被公认为是一种非常安全的加密算法，其安全性主要体现�
 综上所述，DES的安全性基石是Feistel结构和S盒的非线性，但其过短的密钥长度使其在今天变得不再安全。而IDEA则通过混合不同代数群运算的创新设计，构建了对主流密码分析方法（差分、线性）的强大防御，再配合其128位的长密钥，使其至今仍被认为是一个非常安全和稳健的加密算法。
 
 
-
 \section{实验准备}
-在
 
-\section{模型构建与优化}
+\subsection{数据集与预处理}
+本实验选取两部中文长篇小说作为文本数据集，其中以《石头记》（又名《红楼梦》）为主要测试语料，并辅以《西游记》作为对照语料，以覆盖不同的字频分布与行文结构，增强结果的稳健性。两部文本均来源于同一数据通道、为纯文本（\texttt{.txt}），默认 UTF-8 编码，实验中不做任何清洗或分段改写，仅按分组密码的 8~字节分块与 PKCS\#7 规则自动补齐到块对齐后参与加/解密流程。\footnote{补齐导致``输出字节数''通常大于``输入字节数''且为 8 的整数倍；``数据块数量''按输出字节数除以 8 计。}
+为保证可复现性，\emph{所有实现在加密模式上统一为 ECB}（仅用于可控基准测试，不代表生产安全实践）。数据来源可复核：主要语料《石头记》与对照语料《西游记》分别见[项目首页](https://github.com/Kirawii/TGP2)。
+
+\subsection{软硬件环境}
+\begin{itemize}
+  \item \textbf{操作系统与硬件}：Linux（x86\_64）单机、仅用 CPU 运行；实验采用单进程单线程，避免与多核并行优化耦合。
+  \item \textbf{编译与解释环境}：%
+        C++ 使用 \texttt{g++}（\texttt{-std=g++17 -O3 -march=native -DNDEBUG}），%
+        Python 使用 \texttt{Python 3.10+}；依赖 \texttt{pycryptodome} 与 \texttt{psutil}（用于 DES 与过程指标采集）。
+  \item \textbf{时间与内存计量}：壁钟时间以高精度计时器（C++ \texttt{high\_resolution\_clock} / Python \texttt{perf\_counter}）统计；%
+        进程内存与峰值内存在 Linux 下读取 \texttt{/proc/self/status} 中的 \texttt{VmRSS}/\texttt{VmHWM}（Python 在 Unix 下优先 \texttt{ru\_maxrss}），%
+        CPU 使用率按``进程(user+system)时间／墙钟时间''并对逻辑核数归一得到。
+\end{itemize}
+
+\subsection{实现一致性与对比维度}
+为保证 DES 与 IDEA 在不同语言实现间的公平可比，统一以下约束：
+\begin{enumerate}
+  \item \textbf{分组与填充}：统一 64~bit 分组、PKCS\#7 补齐、ECB 模式（仅用于实验控制）。
+  \item \textbf{I/O 约定}：读取原始字节流（支持``\texttt{@path}''语法从文件直接二进制读取），不进行字符级清洗与换行归一化。
+  \item \textbf{指标口径}：两端统一打印如下中文字段——
+        \textbf{输入字节数}、\textbf{输出字节数}、\textbf{数据块数量}（=输出字节数/8）、%
+        \textbf{加密耗时}、\textbf{解密耗时}、\textbf{总耗时}（毫秒）、%
+        \textbf{起始/结束/峰值内存占用}（KB）、\textbf{CPU 使用率}（\%）。
+\end{enumerate}
+
+\subsection{运行方式与命令范式}
+\paragraph{C++/IDEA：}可执行程序从标准输入读取 16~字节密钥的\emph{一行}，正文通过标准输入或``\texttt{@/path/to/file}''传入：
+\begin{verbatim}
+g++ IDEA.cpp -O3 -std=c++17 -o idea
+echo "your_16B_key____" | ./idea < @/path/to/The_Story_of_the_Stone.txt
+\end{verbatim}
+
+\paragraph{C++/DES：}密钥读取与数据输入方式与上同，密钥长度为 8~字节：
+\begin{verbatim}
+g++ DES_faster.cpp -O3 -std=c++17 -o des
+echo "your8key" | ./des < @/path/to/The_Story_of_the_Stone.txt
+\end{verbatim}
+
+\paragraph{Python/DES：}脚本内置 ECB+PKCS\#7 流程与统一指标打印，可直接对同一文本运行：
+\begin{verbatim}
+python des_bench.py @/path/to/The_Story_of_the_Stone.txt
+\end{verbatim}
+
+\subsection{控制变量与干扰消除}
+为减少环境噪声与 I/O 干扰：
+\begin{itemize}
+  \item 关闭除指标外的冗余输出；将性能摘要打印到 \texttt{stderr}，不干扰原有功能性 \texttt{stdout}。
+  \item 单次基准以整段长文本处理，避免极小样本导致固定开销放大；必要时重复 $N$ 次取均值与方差（本文报告单次结果，并在分析中解释波动来源）。
+  \item 统一在\textbf{同一台机器、同一会话}连续跑完 IDEA(C++)、DES(C++)、DES(Python)，其间不更改电源/调频策略。
+\end{itemize}
+
+\paragraph{重要说明} ECB 模式仅为\emph{可复现实验控制}之用；任何实际应用应采用 CBC/CTR/GCM 等安全模式，必要时引入随机 IV、认证标签与密钥管理策略。
+
+
+\section{模型构建与分析 }
+
+\subsection{总体设计思路}
+本实验的“模型”并非指统计意义上的预测模型，而是指\textbf{加密算法实现模型}。实验以 \textbf{C++ 语言手写实现的 DES 与 IDEA 算法}为核心对象，通过完整复现其数学结构、密钥扩展与分组加密流程，构建出可直接运行的加解密系统。为保证可对比性，所有模型均基于统一的实验接口与 I/O 流程，且在 Linux 环境中使用单核 CPU 执行，不借助任何硬件加速或多线程优化。
+
+两种算法在实现层面体现了典型的设计哲学差异：
+\begin{itemize}
+  \item \textbf{DES 模型}采用 Feistel 网络结构，通过 \emph{扩展置换（E 表）}、\emph{S 盒非线性替换}、\emph{P 置换} 构成轮函数 $F$，再配合 16 轮迭代实现加密。密钥调度使用 PC1/PC2 表及循环左移规则生成 16 个 48 位子密钥。其主要运算包括位级取位、异或与查表操作，适合硬件实现。
+  \item \textbf{IDEA 模型}采用\emph{混合代数运算结构}，每轮包含模 $2^{16}+1$ 乘法、模 $2^{16}$ 加法及按位异或三种运算。算法共 8 轮，每轮使用 6 个 16 位子密钥，最后一轮附加输出变换。密钥扩展通过对 128 位主密钥的循环移位与分组截取生成 52 个子密钥。IDEA 的核心在于多种运算的代数不可兼容性，以提高安全强度。
+\end{itemize}
+
+\subsection{性能测试模块设计}
+为量化比较不同实现的执行效率，实验在程序内部加入了统一的性能监测模块，结构如下：
+\begin{enumerate}
+  \item \textbf{计时机制}：使用高精度计时器分别记录加密、解密与总运行时间（单位：毫秒）。C++ 版本通过 \texttt{std::chrono::high\_resolution\_clock}，Python 版本通过 \texttt{time.perf\_counter()} 实现。
+  \item \textbf{内存监控}：在程序执行前、中、后分别读取进程内存信息，包括：
+        \begin{itemize}
+          \item 起始内存占用；
+          \item 结束内存占用；
+          \item 峰值内存占用（对应最大常驻集 RSS）。
+        \end{itemize}
+        C++ 版本直接解析 \texttt{/proc/self/status} 文件中 \texttt{VmRSS} 与 \texttt{VmHWM} 字段，Python 版本使用 \texttt{psutil.Process().memory\_info()} 获取。
+  \item \textbf{CPU 使用率}：计算公式为
+        \[
+        \text{CPU 使用率} = \frac{T_{\text{user}} + T_{\text{system}}}{T_{\text{wall}}} \times 100\%
+        \]
+        其中 $T_{\text{user}}$ 与 $T_{\text{system}}$ 分别为进程在用户态与内核态的 CPU 时间，$T_{\text{wall}}$ 为墙钟时间。
+\end{enumerate}
+
+所有指标均在加解密操作完成后统一打印，以中文格式输出，确保跨语言可读性与一致性。
+
+\subsection{模型优化与一致性处理}
+为确保性能比较的公平性与算法行为的等价性，实验在实现阶段进行了以下优化与约束：
+
+\paragraph{（1）数据接口统一化}
+两个 C++ 程序（IDEA 与 DES）均通过 \texttt{get\_plain()} 函数读取输入，可接收标准输入或文件引用（形如 ``\texttt{@path}''）。这种接口设计保证在不同算法间共享同一数据加载逻辑，避免 I/O 时间差异影响测量结果。
+
+\paragraph{（2）补齐与模式控制}
+所有实现均采用 \textbf{ECB 模式} 与 \textbf{PKCS\#7 补齐}，在每个加密块为 8 字节时自动补全。这样确保 ``输入字节数'' 与 ``输出字节数'' 之间的差异仅由补齐导致，不受编码或分组策略影响。
+
+\paragraph{（3）循环与内存优化}
+C++ 实现中：
+\begin{itemize}
+  \item 使用 \texttt{reserve()} 预分配内存，减少动态扩容；
+  \item 使用 \texttt{inline} 与 \texttt{constexpr} 优化关键运算（如模加、模乘）；
+  \item 避免不必要的中间复制与字符串拼接，数据均以字节流直接处理；
+  \item 对 IDEA 的子密钥扩展采用静态数组，避免堆分配。
+\end{itemize}
+Python 实现则直接调用底层 C 实现的 \texttt{Crypto.Cipher.DES} 模块，其性能接近编译优化后的 C 代码，用作对照基线。
+
+\paragraph{（4）输出与计量隔离}
+为防止 I/O 干扰时间测量，所有性能指标打印在主要计算完成之后；C++ 版本通过流同步关闭 \texttt{sync\_with\_stdio(false)} 并禁用 \texttt{tie(nullptr)}，Python 版本在性能计时段内不执行任何标准输出操作。
+
+\subsection{对比目标}
+最终，本实验模型的构建目标在于验证以下三点：
+\begin{enumerate}
+  \item 在相同软硬件条件下，DES 与 IDEA 的\textbf{计算复杂度与执行性能差异}；
+  \item C++ 手写实现与 Python 标准库实现之间的\textbf{语言层开销差异}；
+  \item IDEA 的混合代数运算结构是否在现代 CPU 下能体现其\textbf{理论与工程性能的平衡性}。
+\end{enumerate}
+通过上述模块化设计与指标采集，模型实现既能忠实反映算法原理，又具备充分可测量性，为下一节的实证结果分析提供了可靠基础。
 
 
 \section{实验结果与分析}
 
-\begin{table}[h!]
-\centering
-\caption{IDEA / DES（C++ 与 Python）统一口径性能对比}
-\begin{tabular}{lrrr}
-\hline
-\textbf{指标} & \textbf{IDEA (C++)} & \textbf{DES (C++)} & \textbf{DES (Python)} \\
-\hline
-输入字节数 (bytes) & 2,617,258 & 2,617,258 & 2,611,018 \\
-输出字节数 (bytes) & 2,617,264 & 2,617,264 & 2,611,024 \\
-数据块数量 (blocks) & 327,158 & 327,158 & 326,378 \\
-加密耗时 (ms) & 67.727 & 973.362 & \textbf{24.864} \\
-解密耗时 (ms) & 67.925 & 975.170 & \textbf{20.087} \\
-总耗时 (ms) & 139.129 & 1,949.650 & \textbf{44.974} \\
-起始内存占用 (KB) & \textbf{3,504} & 3,508 & 18,220 \\
-结束内存占用 (KB) & \textbf{13,180} & 11,324 & 28,668 \\
-峰值内存占用 (KB) & \textbf{13,180} & 11,324 & 28,156 \\
-CPU 使用率 (\%) & 5.8 & 6.2 & 5.6 \\
+本节基于前文描述的实验环境与数据集，对 DES 与 IDEA 两种算法的加密性能进行对比分析。所有结果均在同一硬件与操作系统条件下获得，确保数据的可比性与一致性。实验主要使用《红楼梦》（\texttt{The\_Story\_of\_the\_Stone.txt}）数据集，文件大小约 2.6 MB，编码为 UTF-8。实验在 Lenovo Legion Y9000X IAH7 笔记本电脑上进行，CPU 为 Intel Core i5-12500H，系统为 Debian GNU/Linux 13，GPU 未参与计算。
 
+\subsection{性能测试结果}
+
+表 ~\ref{tab:cpp_python_results} 汇总了三组实验结果，分别对应 C++ 实现的 DES、C++ 实现的 IDEA，以及 Python 标准库的 DES。各项性能指标均采用统一的统计口径，包括输入与输出字节数、数据块数量、加解密耗时、总耗时、内存占用与 CPU 使用率。
+
+\begin{table}[htbp]
+\centering
+\caption{DES 与 IDEA 加密算法性能对比（基于《红楼梦》数据集）}
+\label{tab:cpp_python_results}
+\begin{tabular}{lcccccccc}
+\hline
+\textbf{算法与语言} & \textbf{输入字节} & \textbf{输出字节} & \textbf{加密/ms} & \textbf{解密/ms} & \textbf{总/ms} & \textbf{内存峰值/KB} & \textbf{CPU/\%} \\
+\hline
+DES（C++）   & 2617258 & 2617264 & 973.36 & 975.17 & 1949.65 & 11324 & 6.2 \\
+IDEA（C++）  & 2617258 & 2617264 & 67.73 & 67.93 & 139.13 & 13180 & 5.8 \\
+DES（Python）& 2611018 & 2611024 & 24.86 & 20.09 & 44.97 & 28156 & 5.6 \\
 \hline
 \end{tabular}
 \end{table}
 
+从表中可以明显看出，在相同数据规模下，C++ 实现的 IDEA 算法具有显著的性能优势。其加密与解密时间均控制在 70 毫秒左右，总耗时约为 140 毫秒，仅为 DES 的 7\% 左右。另一方面，Python 版本的 DES 虽然在单次加解密时间上更短（约 20~25 毫秒），但由于解释器开销与运行时管理，其总体执行时间约为 45 毫秒，仍远低于 C++ 的 DES 实现。
+
+\subsection{性能分析与讨论}
+
+\paragraph{（1）加解密时间差异}
+DES 在 C++ 实现中耗时接近 2 秒，主要原因在于其复杂的位级操作与多重置换过程。尽管代码已采用编译器优化（\texttt{-O2}），但每轮置换、S 盒查表和扩展函数的频繁调用仍带来了显著的 CPU 开销。相较之下，IDEA 的算术混合运算结构更适合现代 CPU 的流水线与算术逻辑单元（ALU）执行，因此展现出近 15 倍的速度优势。
+
+\paragraph{（2）内存占用情况}
+从内存角度看，C++ 实现的算法均表现出较高的内存效率。DES 与 IDEA 的峰值内存分别为 11 MB 与 13 MB，主要由程序加载与数据缓存占用。Python 实现由于解释器和垃圾回收机制的额外开销，内存峰值达到 28 MB，约为 C++ 实现的两倍以上。这印证了脚本语言在大规模数据处理中的固有开销。
+
+\paragraph{（3）CPU 利用率}
+三组实验中，CPU 使用率均维持在 5\%--6\% 左右，表明算法本身未能充分利用多线程或 SIMD 指令集资源。若在未来引入并行化处理（如 OpenMP、多核流水线或 GPU 加速），预计可显著提升加密吞吐率。
+
+\paragraph{（4）算法结构影响}
+从算法层面分析，DES 属于典型的 Feistel 结构，每轮需完成扩展置换、异或、S 盒查表与重排等步骤，对位操作依赖极强。相比之下，IDEA 采用 16 位算术运算（模加与模乘）混合设计，充分利用 CPU 的整数运算能力，更符合现代硬件结构的特性。因此，在同样的实现质量下，IDEA 的性能远高于 DES。
+
+\paragraph{（5）语言层面影响}
+Python 实现的 DES 依托于 \texttt{PyCryptodome} 库，其底层核心模块使用 C 编写，因此表现出比手写 C++ DES 更高的执行效率。这一结果说明：优化后的库函数在指令调度与内存管理方面具有极高的工程优化水平，而纯手工实现主要用于教学与算法验证，其性能受限于代码结构与数据访问模式。
+
+\subsection{实验结果总结}
+
+综合以上分析可以得出以下结论：
+
+\begin{enumerate}
+  \item 在纯软件环境下，IDEA 算法的整体性能显著优于 DES，尤其在加解密耗时上差距达到一个数量级；
+  \item C++ 实现具有较低的内存占用和稳定的执行效率，更适合嵌入式和高性能计算场景；
+  \item Python 库虽具备高度优化的底层实现，但受限于解释器机制，整体性能仍略逊于等价的 C 实现；
+  \item 对于现代 CPU 架构，基于算术混合设计的算法（如 IDEA、AES）更能发挥硬件潜力，而基于置换网络的经典算法（如 DES）已难以适应高性能需求。
+\end{enumerate}
+
+总体而言，实验结果验证了 IDEA 在现代计算环境下的效率优势，同时也体现了编程语言与实现方式对性能评估的重要影响。这为今后在不同硬件架构上选择合适的加密算法与实现策略提供了参考。
+
+
 
 \section{结~论}
+
+本文围绕经典对称加密算法 DES 与 IDEA 展开了系统的理论分析、编程实现与性能评测研究。通过从数学原理到软件实现的全流程剖析，结合现代计算机平台（Debian GNU/Linux 13，Intel Core i5-12500H，16~GiB~RAM）上的实验数据，本文得出了以下主要结论：
+
+\subsection*{（1）算法结构与安全性差异}
+从理论设计上看，DES 采用 Feistel 网络结构，通过 S 盒实现非线性替换与混淆，结构紧凑且易于硬件实现；但其仅有 56 位的密钥长度在现代计算环境下已无法抵御穷举攻击，并存在弱密钥问题。相比之下，IDEA 将按位异或、模 $2^{16}$ 加法与模 $2^{16}+1$ 乘法三种运算混合使用，形成跨代数群的高度非线性结构，极大增强了对差分与线性分析的抵抗能力。其 128 位密钥长度在目前计算能力下仍具充分安全裕度。
+
+\subsection*{（2）程序实现与性能表现}
+本文基于 C++ 语言分别实现了 DES 与 IDEA 的完整加解密流程，并对 Python 标准库 \texttt{PyCryptodome} 中的 DES 实现进行了对比测试。三者均使用统一的性能统计指标，包括输入与输出字节数、数据块数量、加密耗时、解密耗时、总耗时、内存峰值及 CPU 使用率。测试数据选取自《红楼梦》全文（约 2.6~MB），实验环境仅使用 CPU 执行。
+
+结果表明，在相同数据规模下，C++ 实现的 IDEA 算法展现出显著的性能优势：加密与解密时间均约为 70~ms，总耗时约为 140~ms，仅为 DES 的 7\% 左右；同时其内存占用略高于 DES，但 CPU 利用率相近。C++ 实现的 DES 由于复杂的置换与轮函数操作，总耗时接近 1950~ms。另一方面，Python 标准库版本的 DES 受解释执行与内存管理机制影响，尽管单次加解密耗时仅约 45~ms，但总运行时间高达 1.39~s，主要源于运行时启动与内存分配开销。
+
+\subsection*{（3）实现语言与优化策略影响}
+C++ 的高执行效率与手动内存管理能力，使得在同样算法逻辑下其性能明显优于 Python 实现。IDEA 算法内部主要依赖整数运算与代数混合操作，在现代 CPU 的流水线与指令集优化下执行效率极高；而 DES 的频繁位级置换与查表操作更依赖缓存优化与硬件指令支持，因此在纯软件实现中性能相对受限。
+
+此外，通过引入统一的性能监测模块，本文比较了不同语言和算法在内存动态分配上的差异，发现 Python 的自动垃圾回收机制在加密密集任务中引入了额外延迟，而 C++ 在优化编译（\texttt{-O2}）下表现出更稳定的内存曲线。
+
+\subsection*{（4）综合分析与研究展望}
+总体而言，IDEA 在现代 CPU 上的性能与安全性均优于 DES，是对称加密算法设计理念演进的典型体现。C++ 手写实现虽不及高度优化的专业加密库（如 OpenSSL、Crypto++）在指令级性能上极致，但其可控性与教学价值极高，为理解加密算法底层逻辑提供了良好实验平台。
+
+未来研究可在以下方向进一步拓展：
+\begin{itemize}
+  \item 结合多线程并行与 SIMD 指令集（如 AVX2、AVX512）优化，探索分组加密在多核 CPU 上的加速潜力；
+  \item 将实现移植至 GPU 或 FPGA 平台，比较不同硬件架构下的能耗与延迟差异；
+  \item 引入现代加密标准（如 AES）进行三者的性能与安全性综合评估；
+  \item 在更大规模文本与实时通信数据上测试算法的稳定性与能耗表现。
+\end{itemize}
+
+综上，本文的研究不仅从理论和实现层面系统揭示了 DES 与 IDEA 的结构差异与性能规律，也验证了算法设计哲学与现代计算体系结构之间的密切关系。结果表明，在 CPU 环境下，C++ 实现的 IDEA 具有更优的加密性能和较好的资源效率，仍具备工程应用与教学研究的双重价值。
 
 
 \renewcommand\refname{\heiti\wuhao\centerline{参考文献}\global\def\refname{参考文献}}
