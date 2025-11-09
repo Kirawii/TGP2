@@ -203,8 +203,7 @@ hidelinks
 \noindent\rule{4cm}{.5pt}\\[0.5ex]%
 \hspace*{1em} \liuhao \linespread{0.8}\selectfont
 \parbox{\textwidth}{
-\heiti\makebox[\widthof{\makebox{*}实}][r]{\makebox{*}学}号：#1 \\
-\heiti\makebox[\widthof{\makebox{*}实}][r]{\makebox{*}E-}mail：#2 \\
+\heiti\makebox[\widthof{\makebox{*}实}][r]{\makebox{*}Git}Hub：#1 \\
 }}
 }
 
