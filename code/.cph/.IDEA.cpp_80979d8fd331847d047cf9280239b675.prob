@@ -1,1 +1,0 @@
-{"name":"Local: IDEA","url":"/home/jiangshun/IS_TGP2/TGP2/code/IDEA.cpp","tests":[{"id":1762612369555,"input":"jielycat\n@data/The_Story_of_the_Stone.txt","output":""},{"id":1762612753694,"input":"jielycatjielyca\nHello IDEA!","output":""}],"interactive":false,"memoryLimit":1024,"timeLimit":3000,"srcPath":"/home/jiangshun/IS_TGP2/TGP2/code/IDEA.cpp","group":"local","local":true}

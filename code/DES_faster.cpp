@@ -5,7 +5,6 @@ using u64 = uint64_t;
 using u32 = uint32_t;
 using u8 = uint8_t;
 
-// ---- 常量与置换表 ----
 static const int LS[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1}; // 每轮左移位数
 
 // 密钥置换 PC-1（64->56，去奇偶校验位）
@@ -74,21 +73,19 @@ static const int SBOX[8][4][16] = {
      {7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8},
      {2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11}}};
 
-// ---- 通用置换：按表抽取位 ----
 template <int N>
 static inline u64 permute(u64 input, const int (&tbl)[N])
 {
     u64 out = 0;
     for (int i = 0; i < N; ++i)
     {
-        int src = tbl[i] - 1;                     // 表索引从 1 开始
-        u64 bit = (input >> (64 - 1 - src)) & 1u; // 统一按 64 位视角取位
+        int src = tbl[i] - 1;  
+        u64 bit = (input >> (64 - 1 - src)) & 1u; 
         out = (out << 1) | bit;
     }
     return out;
 }
 
-// 指定输入宽度的置换（E/PC2/P 使用）
 static inline u64 permute_n(u64 input, const int *tbl, int n, int in_width)
 {
     u64 out = 0;
@@ -101,14 +98,12 @@ static inline u64 permute_n(u64 input, const int *tbl, int n, int in_width)
     return out;
 }
 
-// 28 位循环左移（仅低 28 位有效）
 static inline u32 rol28(u32 v, int r)
 {
     v &= 0x0FFFFFFFu;
     return ((v << r) | (v >> (28 - r))) & 0x0FFFFFFFu;
 }
 
-// 8 字节大端装载/存储
 static inline u64 load64_be(const u8 *b)
 {
     return ((u64)b[0] << 56) | ((u64)b[1] << 48) | ((u64)b[2] << 40) | ((u64)b[3] << 32) |
@@ -126,7 +121,6 @@ static inline void store64_be(u64 v, u8 *b)
     b[7] = (u8)(v);
 }
 
-// ---- 密钥安排：生成 16 轮 48 位子密钥 ----
 static inline void des_key_schedule(const u8 key8[8], u64 subkey[16])
 {
     u64 key64 = load64_be(key8);              // 原始 64 位密钥
@@ -143,7 +137,6 @@ static inline void des_key_schedule(const u8 key8[8], u64 subkey[16])
     }
 }
 
-// ---- 轮函数 F(R, K) ----
 static inline u32 des_f(u32 R, u64 k48)
 {
     u64 ER = permute_n((u64)R, E_tab, 48, 32); // 扩展 32->48
@@ -162,7 +155,6 @@ static inline u32 des_f(u32 R, u64 k48)
     return (u32)Pout;
 }
 
-// ---- 单块加密（ECB 基元）----
 static inline void des_encrypt_block(const u8 in[8], u8 out[8], const u64 subkey[16])
 {
     u64 B = load64_be(in);
@@ -180,7 +172,7 @@ static inline void des_encrypt_block(const u8 in[8], u8 out[8], const u64 subkey
     u64 C = permute<64>(preout, FP);   // 逆初始置换
     store64_be(C, out);
 }
-// ---- 单块解密（子密钥逆序）----
+
 static inline void des_decrypt_block(const u8 in[8], u8 out[8], const u64 subkey[16])
 {
     u64 rev[16];
@@ -189,7 +181,6 @@ static inline void des_decrypt_block(const u8 in[8], u8 out[8], const u64 subkey
     des_encrypt_block(in, out, rev);
 }
 
-// ---- PKCS#7 填充/去填充 ----
 static inline vector<u8> pkcs7_pad_vec(const vector<u8> &data, size_t block = 8)
 {
     size_t n = data.size();
@@ -216,7 +207,6 @@ static inline bool pkcs7_unpad_inplace(vector<u8> &buf, size_t block = 8)
     return true;
 }
 
-// ---- ECB 模式（演示用，不安全）----
 static inline vector<u8> des_ecb_encrypt_vec(const vector<u8> &plain, const u8 key8[8])
 {
     u64 subkey[16];
@@ -239,7 +229,6 @@ static inline bool des_ecb_decrypt_vec(const vector<u8> &cipher, const u8 key8[8
     return pkcs7_unpad_inplace(plain_out, 8);
 }
 
-// ---- hex 编解码（调试可用）----
 static inline string to_hex(const vector<u8> &v)
 {
     static const char *H = "0123456789abcdef";
@@ -282,7 +271,6 @@ static inline vector<u8> from_hex(const string &h)
     return v;
 }
 
-// ---- 输入读取：支持 @path 文件或直接 stdin ----
 static inline bool is_space_le(char c) { return static_cast<unsigned char>(c) <= ' '; }
 
 vector<u8> get_plain()
@@ -292,7 +280,7 @@ vector<u8> get_plain()
     while (i < all.size() && is_space_le(all[i]))
         ++i;
     if (i < all.size() && all[i] == '@')
-    { // @ 路径读取文件
+    {
         size_t j = i + 1;
         while (j < all.size() && is_space_le(all[j]))
             ++j;
@@ -317,7 +305,7 @@ vector<u8> get_plain()
         fclose(fp);
         return buf;
     }
-    return vector<u8>(all.begin(), all.end()); // 直接返回全部字节
+    return vector<u8>(all.begin(), all.end());
 }
 
 // int main()
@@ -355,14 +343,12 @@ vector<u8> get_plain()
 // // cout << "\n";
 // return 0;
 // }
-// ……(原 DES_faster.cpp 内容保持不变)……
 
 int main()
 {
     ios::sync_with_stdio(false);
     cin.tie(nullptr);
 
-    // —— 仅在 main 内定义工具，不改动其它处 —— //
     auto now_us = []() -> uint64_t
     {
         return (uint64_t)chrono::duration_cast<chrono::microseconds>(
@@ -429,12 +415,10 @@ int main()
 #endif
     };
 
-    // ========= 指标起点 =========
     uint64_t t_all_begin = now_us();
     uint64_t cpu_ticks_begin = read_proc_ticks();
     uint64_t rss_begin = rss_kb();
 
-    // ========= 原有逻辑：不改 =========
     string key_in;
     if (!getline(cin, key_in))
         return 0;
@@ -462,7 +446,6 @@ int main()
         return 1;
     }
 
-    // ========= 指标终点与打印 =========
     uint64_t t_all_end = now_us();
     uint64_t cpu_ticks_end = read_proc_ticks();
     uint64_t rss_end = rss_kb();
@@ -487,7 +470,6 @@ int main()
 
     uint64_t blocks = cipher.size() / 8;
 
-    // —— 统一字段（与 Python 完全一致） —— 打到 stderr
     cerr << "\n【DES 性能指标 CPP（统一口径）】\n"
          << " 输入字节数   ：" << plain.size() << " 字节\n"
          << " 输出字节数   ：" << cipher.size() << " 字节\n"
@@ -503,3 +485,11 @@ int main()
 
     return 0;
 }
+
+/*
+jielycat
+Hello IDEA!
+
+jielycat
+@data/The_Story_of_the_Stone.txt
+*/

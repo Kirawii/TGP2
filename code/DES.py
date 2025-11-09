@@ -26,7 +26,6 @@ def des_decrypt(key, ciphertext: bytes) -> bytes:
     return plain_padded[:-pad]
 
 def _peak_rss_kb() -> float:
-    # Unix 优先 ru_maxrss；Darwin 为 bytes；否则回退当前 RSS
     if resource is not None:
         try:
             v = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
@@ -38,7 +37,6 @@ def _peak_rss_kb() -> float:
 def _cpu_percent_between(proc: psutil.Process, wall_start: float, wall_end: float, cpu_start: float, cpu_end: float) -> float:
     wall = max(1e-9, wall_end - wall_start)
     ncpu = psutil.cpu_count(logical=True) or 1
-    # user+system
     return max(0.0, min(100.0, (cpu_end - cpu_start) / wall * 100.0 / ncpu))
 
 if __name__ == "__main__":
@@ -66,7 +64,6 @@ if __name__ == "__main__":
     rss_end_kb = proc.memory_info().rss / 1024.0
     peak_kb = _peak_rss_kb()
 
-    # 原有可选输出
     # print("密文字节序列：", ' '.join(str(int(x)) for x in ciphertext))
     # print("解密结果：", plain2.decode('utf-8'))
 
@@ -76,7 +73,6 @@ if __name__ == "__main__":
     blocks = len(ciphertext) // 8
     cpu_percent = _cpu_percent_between(proc, wall_start, wall_end, cpu_start, cpu_end)
 
-    # —— 统一字段（与 C++ 完全一致）——
     print("\n【DES 性能指标 Python（统一口径）】")
     print(f" 输入字节数   ：{len(plaintext.encode())} 字节")
     print(f" 输出字节数   ：{len(ciphertext)} 字节")

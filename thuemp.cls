@@ -14,7 +14,10 @@ hidelinks
 }
 % 删除过时宏包 subfigure，改为使用 subcaption
 % 删除重复宏包
-
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{ctex}
+\usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{amsmath, amsfonts, amssymb}    % 数学宏包
 \usepackage{graphicx}                      % 插图支持
@@ -234,3 +237,37 @@ hidelinks
 \DeclareMathSizes{10.5}{10}{6.8}{4.2}
 \setlength{\abovedisplayskip}{2.5mm}
 \setlength{\belowdisplayskip}{2.5mm}
+
+\lstset{
+  language=C++,
+  basicstyle=\ttfamily\small,         % 基本字体
+  numbers=left,                       % 行号显示在左侧
+  numberstyle=\tiny\color{gray},      % 行号样式
+  stepnumber=1,                       % 每行都显示行号
+  numbersep=6pt,                      % 行号与代码间距
+  backgroundcolor=\color{gray!5},     % 背景色
+  frame=single,                       % 添加边框
+  rulecolor=\color{gray!70},          % 边框颜色
+  breaklines=true,                    % 自动换行
+  keywordstyle=\color{blue},          % 关键字颜色
+  commentstyle=\color{gray!60}\itshape, % 注释样式
+  stringstyle=\color{red!60!brown},   % 字符串样式
+  captionpos=b,                       % 标题在底部
+  showspaces=false,
+  showstringspaces=false,
+  showtabs=false,
+  tabsize=2
+}
+
+\lstdefinestyle{Python}{
+    language        =   Python, % 语言选Python
+    basicstyle      =   \zihao{-5}\ttfamily,
+    numberstyle     =   \zihao{-5}\ttfamily,
+    keywordstyle    =   \color{blue},
+    keywordstyle    =   [2] \color{teal},
+    stringstyle     =   \color{magenta},
+    commentstyle    =   \color{red}\ttfamily,
+    breaklines      =   true,   % 自动换行，建议不要写太长的行
+    columns         =   fixed,  % 如果不加这一句，字间距就不固定，很丑，必须加
+    basewidth       =   0.5em,
+}

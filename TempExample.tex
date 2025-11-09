@@ -1,14 +1,14 @@
+
 \documentclass{thuemp}
 \usepackage{graphicx} 
 \begin{document}
 
 % 标题，作者
 \emptitle{DES与IDEA加密算法的实现、比较与性能分析}
-\empauthor{许桐恺}{杨蕴涵}{许桐恺}
+\empauthor{许桐恺}{杨蕴涵}{刘俊宏}
 
 % 奇数页页眉 % 请在这里写出第一作者以及论文题目
 \fancyhead[CO]{{\footnotesize 刘俊宏，杨蕴涵，许桐恺: DES与IDEA加密算法的实现、比较与性能分析}}
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % 关键词 摘要 首页脚注      
@@ -179,7 +179,7 @@ IDEA被公认为是一种非常安全的加密算法，其安全性主要体现�
 
 \subsection{数据集与预处理}
 本实验选取两部中文长篇小说作为文本数据集，其中以《石头记》（又名《红楼梦》）为主要测试语料，并辅以《西游记》作为对照语料，以覆盖不同的字频分布与行文结构，增强结果的稳健性。两部文本均来源于同一数据通道、为纯文本（\texttt{.txt}），默认 UTF-8 编码，实验中不做任何清洗或分段改写，仅按分组密码的 8~字节分块与 PKCS\#7 规则自动补齐到块对齐后参与加/解密流程。\footnote{补齐导致``输出字节数''通常大于``输入字节数''且为 8 的整数倍；``数据块数量''按输出字节数除以 8 计。}
-为保证可复现性，\emph{所有实现在加密模式上统一为 ECB}（仅用于可控基准测试，不代表生产安全实践）。数据来源可复核：主要语料《石头记》与对照语料《西游记》分别见[项目首页](https://github.com/Kirawii/TGP2)。
+为保证可复现性，\emph{所有实现在加密模式上统一为 ECB}（仅用于可控基准测试，不代表生产安全实践）。数据来源可复核：主要语料《石头记》与对照语料《西游记》分别见 \href{http://v.youku.com/}{项目首页}。
 
 \subsection{软硬件环境}
 \begin{itemize}
@@ -202,24 +202,6 @@ IDEA被公认为是一种非常安全的加密算法，其安全性主要体现�
         \textbf{加密耗时}、\textbf{解密耗时}、\textbf{总耗时}（毫秒）、%
         \textbf{起始/结束/峰值内存占用}（KB）、\textbf{CPU 使用率}（\%）。
 \end{enumerate}
-
-\subsection{运行方式与命令范式}
-\paragraph{C++/IDEA：}可执行程序从标准输入读取 16~字节密钥的\emph{一行}，正文通过标准输入或``\texttt{@/path/to/file}''传入：
-\begin{verbatim}
-g++ IDEA.cpp -O3 -std=c++17 -o idea
-echo "your_16B_key____" | ./idea < @/path/to/The_Story_of_the_Stone.txt
-\end{verbatim}
-
-\paragraph{C++/DES：}密钥读取与数据输入方式与上同，密钥长度为 8~字节：
-\begin{verbatim}
-g++ DES_faster.cpp -O3 -std=c++17 -o des
-echo "your8key" | ./des < @/path/to/The_Story_of_the_Stone.txt
-\end{verbatim}
-
-\paragraph{Python/DES：}脚本内置 ECB+PKCS\#7 流程与统一指标打印，可直接对同一文本运行：
-\begin{verbatim}
-python des_bench.py @/path/to/The_Story_of_the_Stone.txt
-\end{verbatim}
 
 \subsection{控制变量与干扰消除}
 为减少环境噪声与 I/O 干扰：
@@ -369,16 +351,6 @@ C++ 的高执行效率与手动内存管理能力，使得在同样算法逻辑�
 
 此外，通过引入统一的性能监测模块，本文比较了不同语言和算法在内存动态分配上的差异，发现 Python 的自动垃圾回收机制在加密密集任务中引入了额外延迟，而 C++ 在优化编译（\texttt{-O2}）下表现出更稳定的内存曲线。
 
-\subsection*{（4）综合分析与研究展望}
-总体而言，IDEA 在现代 CPU 上的性能与安全性均优于 DES，是对称加密算法设计理念演进的典型体现。C++ 手写实现虽不及高度优化的专业加密库（如 OpenSSL、Crypto++）在指令级性能上极致，但其可控性与教学价值极高，为理解加密算法底层逻辑提供了良好实验平台。
-
-未来研究可在以下方向进一步拓展：
-\begin{itemize}
-  \item 结合多线程并行与 SIMD 指令集（如 AVX2、AVX512）优化，探索分组加密在多核 CPU 上的加速潜力；
-  \item 将实现移植至 GPU 或 FPGA 平台，比较不同硬件架构下的能耗与延迟差异；
-  \item 引入现代加密标准（如 AES）进行三者的性能与安全性综合评估；
-  \item 在更大规模文本与实时通信数据上测试算法的稳定性与能耗表现。
-\end{itemize}
 
 综上，本文的研究不仅从理论和实现层面系统揭示了 DES 与 IDEA 的结构差异与性能规律，也验证了算法设计哲学与现代计算体系结构之间的密切关系。结果表明，在 CPU 环境下，C++ 实现的 IDEA 具有更优的加密性能和较好的资源效率，仍具备工程应用与教学研究的双重价值。
 
@@ -392,6 +364,26 @@ C++ 的高执行效率与手动内存管理能力，使得在同样算法逻辑�
   \setlength{\parskip}{0pt}
   \setlength{\itemsep}{0pt plus 0.3ex}
 }
+
+\appendix
+\section{参考代码}
+\lstinputlisting[
+  language=C++,
+  caption={\bf C++ 实现的 DES 加密算法},
+  label={code:DES}
+]{./code/DES_faster.cpp}
+
+\lstinputlisting[
+  language=C++,
+  caption={\bf C++ 实现的 IDEA 加密算法},
+  label={code:IDEA}
+]{./code/IDEA.cpp}
+
+\lstinputlisting[
+    style       =   Python,
+    caption     =   {\bf Python 实现的 DES 加密算法（基于 PyCryptodome 库）},
+    label       =   {code:DES.py}
+]{./code/DES.py}
 
 {
 \renewcommand{\baselinestretch}{0.9}

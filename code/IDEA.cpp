@@ -415,12 +415,10 @@ int main()
 #endif
     };
 
-    // ========= 指标起点 =========
     uint64_t t_all_begin = now_us();
     uint64_t cpu_ticks_begin = read_proc_ticks();
     uint64_t rss_begin = rss_kb();
 
-    // ========= 原有逻辑：不改 =========
     vector<char> key0 = get_key();
     my_key_bin_str = B2b(key0);
     extend(my_key_bin_str);
@@ -479,7 +477,6 @@ int main()
     }
     uint64_t t_dec_end = now_us();
 
-    // 原输出保留
     // cout << "明文：" << string(plain.begin(), plain.begin() + original_len) << "\n";
     // cout << "密文 (hex)：";
     // cout << hex << setfill('0');
@@ -488,7 +485,6 @@ int main()
     // cout << dec << "\n";
     // cout << "解密后的明文：" << string(decrypted_bytes.begin(), decrypted_bytes.begin() + original_len) << "\n";
 
-    // ========= 指标终点与打印 =========
     uint64_t t_all_end = now_us();
     uint64_t cpu_ticks_end = read_proc_ticks();
     uint64_t rss_end = rss_kb();
@@ -511,7 +507,6 @@ int main()
     if (cpu_percent > 100)
         cpu_percent = 100;
 
-    // —— 统一字段（与 Python 完全一致） —— 打到 stderr 不影响 stdout
     cerr << "\n【IDEA 性能指标 CPP（统一口径）】\n"
          << " 输入字节数   ：" << original_len << " 字节\n"
          << " 输出字节数   ：" << encrypted_bytes.size() << " 字节\n"
@@ -528,10 +523,10 @@ int main()
 }
 
 /*
-jielycatjielyca
+jielycatjielycat
 Hello IDEA!
 
-jielycat
+jielycatjielycat
 @data/The_Story_of_the_Stone.txt
 
 */
