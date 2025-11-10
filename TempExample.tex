@@ -3,6 +3,36 @@
 \usepackage{graphicx} 
 \begin{document}
 
+% -------- 封面：无页眉页脚、无页码（且不计入总页数）--------
+% \pagenumbering{gobble}      % 暂时关闭页码输出（不显示）
+\begin{titlepage}
+  \thispagestyle{empty}     % 本页无页眉页脚
+  \begin{center}
+    % 这里放你的封面内容（校徽、横幅、标题、作者信息等）
+    \includegraphics[width=0.25\textwidth]{images/SWUFE.png}\\[1.2cm]
+    \includegraphics[width=0.75\textwidth]{images/swufebanner.png}\\[1.5cm]
+
+    {\fontsize{20pt}{26pt}\selectfont\bfseries
+    DES 与 IDEA 加密算法的实现、\\[6pt]
+    比较与性能分析}\\[0.8cm]
+    {\Large （期中论文）}\\[1.8cm]
+
+    \begin{tabular}{rl}
+      学\quad\quad 院： & 计算机与人工智能学院 \\[0.6cm]
+      专\quad\quad 业： & 计算机科学与技术 \\[0.6cm]
+      学生姓名： & 杨蕴涵、许桐恺、刘俊宏 \\[0.6cm]
+      对应学号： & 42311167、42311038、42311180 \\[0.6cm]
+      完成日期： & 2025年11月 \\[0.6cm]
+    \end{tabular}
+
+    \vfill
+    {\large 西南财经大学}\\
+    {\large Southwestern University of Finance and Economics}\\[0.5cm]
+    {\large 2025 年 11 月}
+  \end{center}
+\end{titlepage}
+
+
 % 标题，作者
 \emptitle{DES与IDEA加密算法的实现、比较与性能分析}
 \empauthor{许桐恺}{杨蕴涵}{刘俊宏}
@@ -358,6 +388,13 @@ C++ 的高执行效率与手动内存管理能力，使得在同样算法逻辑�
 \renewcommand\refname{\heiti\wuhao\centerline{参考文献}\global\def\refname{参考文献}}
 \vskip 12pt
  
+{
+\renewcommand{\baselinestretch}{0.9}
+\liuhao
+\bibliographystyle{gbt7714-numerical}
+\bibliography{./TempExample}
+}
+
 \let\OLDthebibliography\thebibliography
 \renewcommand\thebibliography[1]{
   \OLDthebibliography{#1}
@@ -365,7 +402,9 @@ C++ 的高执行效率与手动内存管理能力，使得在同样算法逻辑�
   \setlength{\itemsep}{0pt plus 0.3ex}
 }
 
+\newpage
 \appendix
+
 \section{参考代码}
 \lstinputlisting[
   language=C++,
@@ -385,12 +424,7 @@ C++ 的高执行效率与手动内存管理能力，使得在同样算法逻辑�
     label       =   {code:DES.py}
 ]{./code/DES.py}
 
-{
-\renewcommand{\baselinestretch}{0.9}
-\liuhao
-\bibliographystyle{gbt7714-numerical}
-\bibliography{./TempExample}
-}
+
 
 
 \end{document}

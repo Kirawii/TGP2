@@ -49,7 +49,15 @@ hidelinks
 \usepackage{makecell}
 \usepackage{algorithm}
 \usepackage{tabularx}
-
+\usepackage{graphicx}
+\usepackage{xeCJK}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{fontspec}
+\usepackage{titlesec}
+\usepackage{color}
+\usepackage{fancyhdr}
+\usepackage{appendix}
 
 \setmainfont{Times New Roman}
 
