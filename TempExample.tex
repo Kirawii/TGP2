@@ -9,8 +9,8 @@
   \thispagestyle{empty}     % 本页无页眉页脚
   \begin{center}
     % 这里放你的封面内容（校徽、横幅、标题、作者信息等）
-    \includegraphics[width=0.25\textwidth]{images/SWUFE.png}\\[1.2cm]
-    \includegraphics[width=0.75\textwidth]{images/swufebanner.png}\\[1.5cm]
+    \includegraphics[width=0.25\textwidth]{images/SWUFE.png}\\[0.3cm]
+    \includegraphics[width=0.5\textwidth]{images/swufebanner.png}\\[2.0cm]
 
     {\fontsize{20pt}{26pt}\selectfont\bfseries
     DES 与 IDEA 加密算法的实现、\\[6pt]
@@ -402,10 +402,17 @@ C++ 的高执行效率与手动内存管理能力，使得在同样算法逻辑�
   \setlength{\itemsep}{0pt plus 0.3ex}
 }
 
-\newpage
+
 \appendix
+\clearpage
+\thispagestyle{empty}
+\begin{center}
+    \Huge\bfseries 附\hspace{1em}录
+    \vspace*{0.5cm}
+\end{center}
 
 \section{参考代码}
+\thispagestyle{empty}
 \lstinputlisting[
   language=C++,
   caption={\bf C++ 实现的 DES 加密算法},

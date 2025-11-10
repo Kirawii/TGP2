@@ -57,7 +57,7 @@ hidelinks
 \usepackage{titlesec}
 \usepackage{color}
 \usepackage{fancyhdr}
-\usepackage{appendix}
+\usepackage[title]{appendix}
 
 \setmainfont{Times New Roman}
 
