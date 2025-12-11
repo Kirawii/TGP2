@@ -1,0 +1,391 @@
+
+\documentclass{thuemp}
+\usepackage{graphicx} 
+\begin{document}
+
+% -------- 封面：无页眉页脚、无页码（且不计入总页数）--------
+% \pagenumbering{gobble}      % 暂时关闭页码输出（不显示）
+\begin{titlepage}
+  \thispagestyle{empty}     % 本页无页眉页脚
+  \begin{center}
+    % 这里放你的封面内容（校徽、横幅、标题、作者信息等）
+    \includegraphics[width=0.25\textwidth]{images/SWUFE.png}\\[0.3cm]
+    \includegraphics[width=0.5\textwidth]{images/swufebanner.png}\\[2.0cm]
+
+    {\fontsize{20pt}{26pt}\selectfont\bfseries
+    针对RSA算法的数学攻击向量复现\\[6pt]
+    与OAEP防御机制构建}\\[0.8cm]
+    {\Large （期末论文）}\\[1.8cm]
+
+    \begin{tabular}{rl}
+      学\quad\quad 院： & 计算机与人工智能学院 \\[0.6cm]
+      专\quad\quad 业： & 计算机科学与技术 \\[0.6cm]
+      学生姓名： & 刘俊宏、许桐恺 \\[0.6cm]
+      对应学号： & 42311180、42311038 \\[0.6cm]
+      完成日期： & 2025年12月 \\[0.6cm]
+    \end{tabular}
+
+    \vfill
+    {\large 西南财经大学}\\
+    {\large Southwestern University of Finance and Economics}\\[0.5cm]
+    {\large 2025 年 12 月}
+  \end{center}
+\end{titlepage}
+
+
+% 标题，作者
+\emptitle{针对RSA算法的数学攻击向量复现与OAEP防御机制构建}
+\empauthor{刘俊宏}{许桐恺}
+% 奇数页页眉 % 请在这里写出第一作者以及论文题目
+
+\fancyhead[CO]{{\footnotesize 刘俊宏，许桐恺: 针对RSA算法的数学攻击向量复现与OAEP防御机制构建}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 关键词 摘要 首页脚注      
+%%%%%%%%关键词
+\Keyword{非对称加密；RSA；OAEP；性能分析；信息安全}  
+
+
+\maketitle
+
+%%%%%%%%摘要
+\begin{empAbstract}
+RSA作为公钥密码学的基石，其安全性严重依赖于密钥参数的选择与填充机制的健壮性。本文旨在通过“底层实现—攻击复现—防御构建”的完整闭环，深入剖析RSA算法的数学特性与工程实现细节。
+首先，本文基于数论原理，不依赖第三方密码库，从零实现了Miller-Rabin素性检测、扩展欧几里得算法及快速模幂运算，并通过实验验证了中国剩余定理（CRT）对解密效率约300\%的性能提升。
+其次，针对RSA在特定参数下的脆弱性，本文复现了基于CRT的小公钥指数广播攻击（Broadcast Attack）和基于连分数展开的维纳攻击（Wiener's Attack）。可视化实验表明，在满足攻击条件时，破解过程的时间复杂度远低于标准暴力穷举。
+最后，针对教科书式RSA（Textbook RSA）缺乏语义安全性的缺陷，本文实现了基于MGF1掩码生成函数的OAEP最优非对称加密填充方案。通过位图加密对比实验，直观展示了OAEP如何消除确定性加密带来的模式泄露风险，从而构建出符合现代安全标准的公钥加密系统。
+\end{empAbstract}
+
+% %%%%%%%%英文标题、作者、摘要、关键词
+% \KeywordEn{credit risk modeling; default prediction; feature engineering; gradient boosting decision trees; model ensembling; Stacking}
+% \emptitleEn{A Study on Personal Credit Default Risk Prediction Based on Multi-Model Ensemble Learning}
+% \empauthorEn{Junhong Liu}{Yunhan Yang}{Tongkai Xu}
+
+% \begin{empAbstractEn}
+% The rapid expansion of personal credit, driven by inclusive finance, has brought heightened attention to default risk, necessitating efficient risk prediction models. This paper introduces an end-to-end framework that merges deep feature engineering with a multi-model ensemble. The process involves systematic preprocessing and multi-dimensional feature construction, with a particular focus on integrating group statistics and third-order co-occurrence features. For modeling, LightGBM is used for feature selection, followed by Optuna-optimized XGBoost, LightGBM, and CatBoost models, which are then combined using a Stacking ensemble with logistic regression as the meta-model. Experimental results demonstrate that this integrated approach significantly outperforms single models, achieving an AUC of 0.7404 on the validation set and ranking 37th on the Tianchi Leaderboard as of June 8, 2025, thereby underscoring the critical value and promising application prospects of advanced feature construction and model fusion in credit risk control.
+
+% \end{empAbstractEn}
+
+%%%%%%%%首页角注，依次为实验时间、报告时间、学号、email
+\empfirstfoot{https://github.com/Kirawii/TGP2}
+%%%%%%%%！首页角注可能与正文重叠，请通过调整正文中第一页的\enlargethispage{-3.3cm}位置手动校准正文底部位置：
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%  正文由此开始
+\wuhao 
+%  分栏开始
+
+\section{引~~言}
+
+\enlargethispage{-3.3cm}
+自1978年Rivest、Shamir和Adleman三位学者首次提出RSA公钥密码体制以来，该算法已成为现代网络安全架构（如SSL/TLS协议、数字签名）的基石\cite{rivest1978method}。RSA算法的安全性建立在大整数分解问题（Integer Factorization Problem, IFP）的计算困难性之上。然而，理论上的数学困难性并不等同于工程实现的安全性。在实际应用中，所谓的“教科书式RSA”（Textbook RSA）——即直接计算 $C \equiv M^e \pmod N$——往往因缺乏随机填充（Padding）和参数选择不当而暴露出严重的安全隐患。
+
+随着计算能力的提升和密码分析技术的发展，针对RSA实现细节的侧信道攻击与代数攻击层出不穷。例如，H{\aa}stad在1985年证明了当多个用户使用较小的公钥指数（如$e=3$）加密相同信息时，攻击者可利用中国剩余定理直接还原明文，即著名的广播攻击\cite{hastad1985solving}。此外，Wiener在1990年指出，若为了提高解密速度而选择过小的私钥指数$d$，攻击者可通过连分数逼近法在多项式时间内分解模数$N$\cite{wiener1990cryptanalysis}。为了应对这些确定性加密带来的语义安全缺失问题，Bellare和Rogaway提出了最优非对称加密填充（OAEP）方案，通过引入随机预言机模型显著增强了算法的抗攻击能力\cite{bellare1994optimal}。
+
+本文旨在通过“底层算法实现—攻击向量复现—防御机制构建”的完整闭环，深入剖析RSA算法的数学特性与工程实现细节。首先，本文基于数论原理，不依赖第三方密码库，从零实现了Miller-Rabin素性检测与基于迭代的扩展欧几里得算法，并验证了中国剩余定理（CRT）对解密性能的提升；其次，本文复现了H{\aa}stad广播攻击与Wiener低解密指数攻击，通过实验数据量化了特定参数下的系统脆弱性；最后，本文严格遵循PKCS\#1 v2.2标准\cite{moriarty2016pkcs}，实现了基于MGF1掩码生成函数的OAEP填充方案，并通过可视化实验证明了其消除模式泄露、保障语义安全性的有效性。
+
+\section{RSA算法的数学原理与底层实现优化}
+
+RSA公钥密码体制的安全性建立在大整数分解问题（Integer Factorization Problem, IFP）的计算困难性之上。本章将详细阐述RSA算法的核心数学构件，并结合本文的Python底层实现，重点分析素数生成、密钥计算及模幂运算中的性能优化策略。
+
+\subsection{大素数生成与Miller-Rabin算法的概率性分析}
+
+RSA算法的第一步是生成两个大素数$p$和$q$。由于直接构造大素数在计算上极其困难，工业界通常采用“生成-检测”法。本文实现了基于概率的Miller-Rabin素性检测算法，该算法基于费马小定理（Fermat's Little Theorem）的逆否命题与二次探测定理。
+
+\subsubsection{算法原理}
+对于待测奇数$n$，设$n-1 = d \cdot 2^r$，其中$d$为奇数。若$n$为素数，对于任意底数$a \in [2, n-2]$，必须满足以下两个条件之一：
+\begin{equation}
+    a^d \equiv 1 \pmod n
+\end{equation}
+\begin{equation}
+    \exists i \in [0, r-1], \quad a^{d \cdot 2^i} \equiv -1 \pmod n
+\end{equation}
+若上述条件均不满足，则$n$必为合数。
+
+\subsubsection{参数$k$的选择与性能权衡}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{image/Figure_3.png}
+    \caption{Miller-Rabin算法在最坏情况（输入为素数）下的性能分析。由于算法必须执行完所有$k$轮检测，耗时与迭代次数呈现严格的线性关系，验证了算法的时间复杂度理论上界。}
+    \label{fig:mr_linear}
+\end{figure}
+Miller-Rabin是一种蒙特卡洛算法。对于单轮测试，若$n$是合数，其通过测试被误判为素数的概率至多为$1/4$。当进行$k$轮独立测试时，总误判概率$P_{error}$满足：
+\begin{equation}
+    P_{error} \leq 4^{-k}
+\end{equation}
+我们在实现中设置$k=40$，理论误判率降至$4^{-40} \approx 10^{-24}$，在工程上可视为绝对安全。实验表明（见图3-1），算法的时间复杂度与$k$呈线性关系，即$O(k \cdot \log^3 n)$，在保证安全性的同时维持了毫秒级的生成速度。
+
+\subsection{密钥生成与扩展欧几里得算法的迭代优化}
+
+公钥指数$e$通常取$65537$（$2^{16}+1$），以加速加密过程。私钥$d$是$e$关于模$\phi(n)$的乘法逆元，即满足线性同余方程：
+\begin{equation}
+    e \cdot d \equiv 1 \pmod{\phi(n)}
+\end{equation}
+这等价于求解Bézout等式 $e \cdot x + \phi(n) \cdot y = \gcd(e, \phi(n)) = 1$ 中的$x$。
+
+\subsubsection{从递归到迭代的工程优化}
+传统的扩展欧几里得算法（Extended Euclidean Algorithm, EEA）常采用递归实现。然而，在处理2048位或4096位的大整数时，Python默认的递归深度限制（通常为1000层）会导致\texttt{RecursionError}栈溢出错误。
+
+为了提升算法在超大密钥场景下的鲁棒性，本文将EEA重构为迭代版本（Iterative Implementation）。通过维护两组系数序列$(r_{old}, r_{new})$与$(s_{old}, s_{new})$，利用循环更新状态：
+\begin{equation}
+    \begin{cases}
+        q \leftarrow r_{old} // r_{new} \\
+        (r_{old}, r_{new}) \leftarrow (r_{new}, r_{old} - q \cdot r_{new}) \\
+        (s_{old}, s_{new}) \leftarrow (s_{new}, s_{old} - q \cdot s_{new})
+    \end{cases}
+\end{equation}
+该优化消除了函数调用栈的开销，使得密钥生成过程能够稳定支持4096位及以上强度的RSA系统。
+
+\subsection{模幂运算优化与中国剩余定理(CRT)加速}
+
+RSA的加解密核心是模幂运算 $C = M^e \pmod N$。朴素的连乘算法复杂度为$O(e)$，对于大指数$e$完全不可用。本文采用了二进制平方-乘算法（Square-and-Multiply），将时间复杂度降低至$O(\log e)$。
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{image/Figure_4.png}
+    \caption{RSA核心算法复杂度分析。右图：朴素乘法（$O(N)$）与快速模幂（$O(\log N)$）的性能鸿沟，证明了快速模幂是RSA实现的物理基础。}
+    \label{fig:scientific}
+\end{figure}
+
+尽管如此，解密过程（$M = C^d \pmod N$）仍然非常耗时，因为私钥$d$通常与$N$具有相同的位长。为了进一步提升解密效率，本文引入了中国剩余定理（Chinese Remainder Theorem, CRT）。
+
+\subsubsection{CRT加速原理}
+利用$N=pq$，我们将模$N$的运算分解为模$p$和模$q$的两个较小规模运算。预计算参数如下：
+\begin{equation}
+    d_p = d \pmod{p-1}, \quad d_q = d \pmod{q-1}, \quad q_{inv} = q^{-1} \pmod p
+\end{equation}
+解密时，首先分别计算：
+\begin{equation}
+    m_1 = C^{d_p} \pmod p, \quad m_2 = C^{d_q} \pmod q
+\end{equation}
+然后利用Garner算法重组明文$M$：
+\begin{equation}
+    h = (q_{inv} \cdot (m_1 - m_2)) \pmod p
+\end{equation}
+\begin{equation}
+    M = m_2 + h \cdot q
+\end{equation}
+
+\subsubsection{性能增益分析}
+由于模幂运算的复杂度与模数位长的立方成正比（$O(\log^3 N)$），将模数长度减半理论上可将计算量减少至原来的$1/8$。考虑到需要进行两次运算，CRT方法的理论加速比为：
+\begin{equation}
+    \frac{T_{standard}}{T_{CRT}} \approx \frac{(\log N)^3}{2 \cdot (\log \frac{N}{2})^3} \approx 4
+\end{equation}
+% --- 插入代码开始 ---
+\begin{figure}[H] % htbp 表示允许放在 这里/页顶/页底/单独一页
+    \centering
+    \includegraphics[width=0.95\textwidth]{image/Figure_1.png}
+    \caption{RSA底层算法性能基准测试。}
+    \label{fig:performance}
+\end{figure}
+% --- 插入代码结束 ---
+本文的基准测试结果（见\ref{fig:performance}）显示，在2048位密钥下，CRT加速解密比标准解密快约3倍至3.5倍。这对高并发的服务器端解密性能至关重要。
+
+
+\section{基于数论缺陷的攻击向量复现}
+
+尽管RSA算法在计算复杂性理论上被认为是安全的，但在实际部署中，若密钥参数选择不当或使用模式存在缺陷，攻击者可绕过大整数分解难题，直接利用数论性质还原明文或私钥。本章重点分析并复现了两种针对特定参数设置的经典代数攻击。
+
+\subsection{小公钥指数广播攻击 (Broadcast Attack)}
+
+为了降低加密设备的计算负载，早期的RSA实现常选用极小的公钥指数（如 $e=3$）。H{\aa}stad 指出，当同一明文被发送给多个使用相同小指数$e$的用户时，系统将面临广播攻击的风险\cite{hastad1985solving}。
+
+\subsubsection{数学模型构建}
+假设攻击者截获了发往 $k$ 个不同用户的密文 $C_1, C_2, \dots, C_k$。所有用户使用相同的公钥指数 $e$，但拥有互不相同的模数 $N_1, N_2, \dots, N_k$。根据RSA定义，存在如下同余方程组：
+\begin{equation}
+    \begin{cases}
+        C_1 \equiv M^e \pmod{N_1} \\
+        C_2 \equiv M^e \pmod{N_2} \\
+        \vdots \\
+        C_k \equiv M^e \pmod{N_k}
+    \end{cases}
+\end{equation}
+假设各模数 $N_i$ 两两互质（即 $\gcd(N_i, N_j) = 1, \forall i \neq j$），根据中国剩余定理（Chinese Remainder Theorem, CRT），上述方程组在模 $N^* = \prod_{i=1}^k N_i$ 下存在唯一解。
+
+\subsubsection{基于CRT的明文还原}
+本文针对 $e=3$ 的场景进行了攻击复现。我们构造如下求解过程：
+设 $M^* = N^* / N_i$，并计算 $T_i \equiv (M^*)^{-1} \pmod{N_i}$。根据CRT，方程组的解 $X$ 可表示为：
+\begin{equation}
+    X \equiv \sum_{i=1}^{k} C_i \cdot M^* \cdot T_i \pmod{N^*}
+\end{equation}
+由于明文 $M < N_i$，则必然满足 $M^e < \prod N_i = N^*$。这意味着，$M^e$ 在整数域上直接等于 $X$，即：
+\begin{equation}
+    M^e = X
+\end{equation}
+因此，攻击者无需分解任何模数 $N_i$，仅需对 $X$ 计算普通的整数 $e$ 次根即可还原明文：
+\begin{equation}
+    M = \sqrt[e]{X}
+\end{equation}
+本文的实验结果（见图4-1）表明，该攻击的时间复杂度主要取决于CRT计算与大数开根运算，其耗时甚至低于合法用户的标准解密过程。
+
+\subsection{低私钥指数维纳攻击 (Wiener's Attack)}
+
+在某些资源受限的智能卡或IoT设备中，为了加速解密过程（即加速 $C^d \pmod N$），实现者可能会有意选取较小的私钥指数 $d$。Wiener 在1990年证明，若 $d < \frac{1}{3}N^{0.25}$，攻击者可利用连分数（Continued Fractions）在多项式时间内恢复 $d$\cite{wiener1990cryptanalysis}。
+
+\subsubsection{连分数逼近原理}
+RSA的公私钥满足关系式 $ed \equiv 1 \pmod{\phi(N)}$，即存在整数 $k$ 使得：
+\begin{equation}
+    ed - k\phi(N) = 1
+\end{equation}
+两边同除以 $d\phi(N)$，得：
+\begin{equation}
+    \frac{e}{\phi(N)} - \frac{k}{d} = \frac{1}{d\phi(N)}
+\end{equation}
+由于 $\phi(N) = N - p - q + 1 \approx N$，我们可以用 $\frac{e}{N}$ 近似 $\frac{e}{\phi(N)}$。Wiener 证明了如下不等式：
+\begin{equation}
+    \left| \frac{e}{N} - \frac{k}{d} \right| < \frac{1}{2d^2}
+\end{equation}
+根据丢番图逼近（Diophantine Approximation）中的勒让德定理（Legendre's Theorem）：若实数 $x$ 与有理数 $\frac{a}{b}$ 满足 $\left| x - \frac{a}{b} \right| < \frac{1}{2b^2}$，则 $\frac{a}{b}$ 必定是 $x$ 的连分数渐进分数（Convergent）之一。
+
+\subsubsection{攻击算法实现}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{image/Figure_6.png}
+    \caption{针对特定参数缺陷的攻击复现结果。左图：广播攻击（CRT法）的破解耗时甚至低于合法用户的解密耗时；右图：维纳攻击还原私钥所需的连分数逼近步数极少，验证了低解密指数的极度脆弱性。}
+    \label{fig:attacks}
+\end{figure}
+基于上述理论，本文实现了如下攻击流程：
+\begin{enumerate}
+    \item 将 $\frac{e}{N}$ 展开为连分数形式 $[a_0; a_1, a_2, \dots]$。
+    \item 依次计算该连分数的渐进分数序列 $\frac{k_i}{d_i}$。
+    \item 将每个 $d_i$ 作为猜测的私钥进行验证。验证方法为：随机选取整数 $m$，检查 $m^{e \cdot d_i} \equiv m \pmod N$ 是否成立。
+\end{enumerate}
+实验表明（见图4-2），随着密钥长度的增加，所需的逼近步数仅呈对数级增长。对于1024位的弱密钥RSA系统，攻击者仅需计算前几十个渐进分数即可瞬间（毫秒级）还原私钥，这证实了在RSA参数选取中检查 $d$ 值大小的必要性。
+
+
+\section{语义安全性缺失与OAEP防御机制构建}
+
+前文章节所述的攻击均针对RSA的特定参数缺陷。然而，即使参数选取完全合规，直接应用教科书式RSA（Textbook RSA）仍无法满足现代密码学对“语义安全性”（Semantic Security）的要求。本章将分析确定性加密的内生缺陷，并基于PKCS\#1 v2.2标准，详细阐述OAEP填充方案的数学构造及其防御效能。
+
+\subsection{确定性加密与电子密码本(ECB)模式泄露}
+
+教科书式RSA是一种确定性加密算法（Deterministic Encryption）。定义加密函数 $E_{pk}(M) = M^e \pmod N$，对于任意两个相同的明文 $M_1, M_2$，若 $M_1 = M_2$，则必然有 $E_{pk}(M_1) = E_{pk}(M_2)$。
+
+\subsubsection{缺乏语义安全性的数学定义}
+在“选择明文攻击下的不可区分性”（IND-CPA）游戏中，攻击者选择两个不同的明文 $M_0, M_1$ 发送给挑战者，挑战者随机选择 $b \in \{0,1\}$ 并返回密文 $C^* = E_{pk}(M_b)$。对于确定性RSA，攻击者只需自行加密 $M_0$ 并与 $C^*$ 比对，即可以前所未有的优势概率（Advantage）判定 $b$ 的值。这表明教科书式RSA不具备语义安全性。
+
+\subsubsection{模式泄露的可视化验证}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\textwidth]{image/Figure_5.png}
+    \caption{语义安全性可视化对比实验。}
+    \label{fig:padding}
+\end{figure}
+为了直观展示这一缺陷，本文模拟了类似于分组密码中的电子密码本（ECB）模式泄露场景。我们将一幅二值位图分割为像素级数据块进行加密。实验结果（见图5-1）显示，由于相同的像素值（如背景色）总是被映射为相同的密文值，加密后的图像完整保留了原始图像的几何轮廓与统计特征。这意味着攻击者无需解密即可通过密文统计推断出明文的结构信息。
+
+\subsection{OAEP方案的数学构造与实现}
+
+为了引入随机性并破坏明文的代数结构，Bellare和Rogaway提出了最优非对称加密填充（Optimal Asymmetric Encryption Padding, OAEP）。OAEP本质上是一个两轮的Feistel网络，它通过引入随机预言机（Random Oracle）将确定的RSA陷门单向函数转化为概率加密方案。
+
+\subsubsection{MGF1掩码生成函数}
+OAEP的核心组件是掩码生成函数（Mask Generation Function, MGF）。本文实现了基于SHA-1的MGF1算法。设 $Z$ 为输入种子，$l$ 为所需掩码长度，$H$ 为哈希函数。MGF1的输出为：
+\begin{equation}
+    \text{MGF1}(Z, l) = T_0 \parallel T_1 \parallel \dots \parallel T_n
+\end{equation}
+其中 $\parallel$ 表示比特串拼接，计数器 $C$ 从0递增，且：
+\begin{equation}
+    T_i = H(Z \parallel \text{I2OSP}(i, 4))
+\end{equation}
+这一过程将较短的随机种子扩展为任意长度的伪随机比特流，用于后续的异或掩码操作。
+
+\subsubsection{OAEP编码流程}
+设明文为 $M$，哈希函数输出长度为 $hLen$，模数长度为 $k$ 字节。OAEP的编码过程如下：
+\begin{enumerate}
+    \item \textbf{填充构造}：生成由标签 $L$ 的哈希值、填充字符串 $PS$（全0字节）和分隔符 $0\text{x}01$ 组成的数据块 $DB$：
+    \begin{equation}
+        DB = H(L) \parallel PS \parallel 0\text{x}01 \parallel M
+    \end{equation}
+    \item \textbf{引入随机性}：生成一个长度为 $hLen$ 的随机种子 $seed$。这是实现语义安全的关键，即使 $M$ 相同，每次生成的 $seed$ 不同，最终密文也不同。
+    \item \textbf{Feistel 混合}：利用MGF1进行双重异或掩码（Masking）：
+    \begin{equation}
+        \text{masked}DB = DB \oplus \text{MGF1}(seed, k - hLen - 1)
+    \end{equation}
+    \begin{equation}
+        \text{masked}Seed = seed \oplus \text{MGF1}(\text{masked}DB, hLen)
+    \end{equation}
+    \item \textbf{最终封装}：拼接得到编码后的消息 $EM$：
+    \begin{equation}
+        EM = 0\text{x}00 \parallel \text{masked}Seed \parallel \text{masked}DB
+    \end{equation}
+\end{enumerate}
+最终，将整数化后的 $EM$ 代入RSA公式 $C = EM^e \pmod N$ 完成加密。
+
+\subsection{防御效能的实验分析}
+
+本文对比了教科书式RSA与OAEP-RSA在相同输入下的表现。
+\begin{enumerate}
+    \item \textbf{雪崩效应（Avalanche Effect）}：由于MGF1和异或操作的扩散性质，随机种子 $seed$ 的每一位变化都会通过Feistel网络扩散到整个密文块中。
+    \item \textbf{语义安全性验证}：在图5-1的对比实验中，经OAEP处理后的密文图像呈现为均匀分布的随机噪声（White Noise）。原本清晰的几何图案彻底消失，像素间的相关性被切断。
+\end{enumerate}
+实验证明，OAEP方案成功地将RSA从确定性加密升级为概率加密，攻击者无法区分两个不同明文的密文差异，从而有效防御了选择密文攻击（CCA）及基于统计学的侧信道分析。
+
+
+
+
+\section{结~~论}
+
+本文以RSA公钥密码体制为研究对象，构建了从“底层算子实现”到“数论攻击复现”，再到“防御机制构建”的完整技术闭环。通过一系列数学推导与代码实验，本文得出以下主要结论：
+
+第一，\textbf{工程优化是RSA实用化的前提。}通过对Miller-Rabin素性检测算法的敏感性分析，我们验证了安全参数$k$与时间复杂度的线性关系。更重要的是，基于中国剩余定理（CRT）的解密优化实验表明，将模数$N$分解为$p, q$域上的独立运算，成功将解密速率提升了约300\%。这证明了在涉及大数模幂的密码系统中，代数结构的合理利用能带来显著的性能增益。
+
+第二，\textbf{参数选取的随意性将导致安全崩塌。}本文复现的H{\aa}stad广播攻击与Wiener低指数攻击有力地证明：RSA的安全性不仅仅依赖于大整数分解问题（IFP）的困难性。若公钥指数$e$过小或私钥指数$d$满足$d < \frac{1}{3}N^{0.25}$，攻击者即可利用同余方程组求解或连分数逼近等纯数学手段，在多项式时间内绕过IFP难题直接还原密钥。这揭示了密码系统设计中“参数陷阱”的严重性。
+
+第三，\textbf{概率性填充是抵御语义攻击的最后防线。}针对教科书式RSA的确定性缺陷，本文实现的OAEP方案通过引入随机预言机模型，成功阻断了ECB模式下的明文统计特征泄露。可视化实验直观地展示了，只有引入了高熵随机因子的概率加密方案，才能满足“选择明文攻击下的不可区分性”（IND-CPA）这一现代密码学安全标准。
+
+综上所述，一个健壮的RSA系统不仅需要坚实的数论基础，更依赖于严谨的工程实现标准（如PKCS\#1规范）。未来的研究工作可进一步探讨针对RSA实现的侧信道攻击（如计时攻击、功耗分析）及其防御策略，以应对物理层面的安全威胁。
+
+
+\renewcommand\refname{\heiti\wuhao\centerline{参考文献}\global\def\refname{参考文献}}
+\vskip 12pt
+ 
+{
+\renewcommand{\baselinestretch}{0.9}
+\liuhao
+\bibliographystyle{gbt7714-numerical}
+\bibliography{./TempExample}
+}
+
+\let\OLDthebibliography\thebibliography
+\renewcommand\thebibliography[1]{
+  \OLDthebibliography{#1}
+  \setlength{\parskip}{0pt}
+  \setlength{\itemsep}{0pt plus 0.3ex}
+}
+
+
+\appendix
+\clearpage
+\thispagestyle{empty}
+\begin{center}
+    \Huge\bfseries 附\hspace{1em}录
+    \vspace*{0.5cm}
+\end{center}
+
+\section{参考代码}
+\thispagestyle{empty}
+\lstinputlisting[
+  language=Python,
+  caption={\bf Python实现的RSA 算法核心模块},
+  label={code:rsa_core}
+]{./code/rsa_core.py}
+
+\lstinputlisting[
+  language=Python,
+  caption={\bf Python实现的RSA科学实验模块},
+  label={code:RSA_scientific_experiments.py}
+]{./code/rsa_scientific_experiments.py}
+
+\lstinputlisting[
+  language=Python,
+  caption={\bf Python实现的RSA攻击向量复现模块},
+  label={code:rsa_attacks.py}
+]{./code/rsa_attacks.py}
+
+\lstinputlisting[
+  language=Python,
+  caption={\bf Python实现的RSA OAEP填充模块},
+  label={code:rsa_oaep.py}
+]{./code/rsa_padding.py}
+
+
+
+\end{document}
