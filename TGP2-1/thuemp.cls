@@ -58,6 +58,7 @@ hidelinks
 \usepackage{color}
 \usepackage{fancyhdr}
 \usepackage[title]{appendix}
+\usepackage{pdfpages}  % 用来插 PDF
 
 \setmainfont{Times New Roman}
 

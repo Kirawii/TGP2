@@ -3,34 +3,36 @@
 \usepackage{graphicx} 
 \begin{document}
 
-% -------- 封面：无页眉页脚、无页码（且不计入总页数）--------
-% \pagenumbering{gobble}      % 暂时关闭页码输出（不显示）
-\begin{titlepage}
-  \thispagestyle{empty}     % 本页无页眉页脚
-  \begin{center}
-    % 这里放你的封面内容（校徽、横幅、标题、作者信息等）
-    \includegraphics[width=0.25\textwidth]{images/SWUFE.png}\\[0.3cm]
-    \includegraphics[width=0.5\textwidth]{images/swufebanner.png}\\[2.0cm]
+\includepdf[pages=1]{head.pdf}
 
-    {\fontsize{20pt}{26pt}\selectfont\bfseries
-    针对RSA算法的数学攻击向量复现\\[6pt]
-    与OAEP防御机制构建}\\[0.8cm]
-    {\Large （期末论文）}\\[1.8cm]
+% % -------- 封面：无页眉页脚、无页码（且不计入总页数）--------
+% % \pagenumbering{gobble}      % 暂时关闭页码输出（不显示）
+% \begin{titlepage}
+%   \thispagestyle{empty}     % 本页无页眉页脚
+%   \begin{center}
+%     % 这里放你的封面内容（校徽、横幅、标题、作者信息等）
+%     \includegraphics[width=0.25\textwidth]{images/SWUFE.png}\\[0.3cm]
+%     \includegraphics[width=0.5\textwidth]{images/swufebanner.png}\\[2.0cm]
 
-    \begin{tabular}{rl}
-      学\quad\quad 院： & 计算机与人工智能学院 \\[0.6cm]
-      专\quad\quad 业： & 计算机科学与技术 \\[0.6cm]
-      学生姓名： & 刘俊宏、许桐恺 \\[0.6cm]
-      对应学号： & 42311180、42311038 \\[0.6cm]
-      完成日期： & 2025年12月 \\[0.6cm]
-    \end{tabular}
+%     {\fontsize{20pt}{26pt}\selectfont\bfseries
+%     针对RSA算法的数学攻击向量复现\\[6pt]
+%     与OAEP防御机制构建}\\[0.8cm]
+%     {\Large （期末论文）}\\[1.8cm]
 
-    \vfill
-    {\large 西南财经大学}\\
-    {\large Southwestern University of Finance and Economics}\\[0.5cm]
-    {\large 2025 年 12 月}
-  \end{center}
-\end{titlepage}
+%     \begin{tabular}{rl}
+%       学\quad\quad 院： & 计算机与人工智能学院 \\[0.6cm]
+%       专\quad\quad 业： & 计算机科学与技术 \\[0.6cm]
+%       学生姓名： & 刘俊宏、许桐恺 \\[0.6cm]
+%       对应学号： & 42311180、42311038 \\[0.6cm]
+%       完成日期： & 2025年12月 \\[0.6cm]
+%     \end{tabular}
+
+%     \vfill
+%     {\large 西南财经大学}\\
+%     {\large Southwestern University of Finance and Economics}\\[0.5cm]
+%     {\large 2025 年 12 月}
+%   \end{center}
+% \end{titlepage}
 
 
 % 标题，作者
@@ -320,8 +322,6 @@ OAEP的核心组件是掩码生成函数（Mask Generation Function, MGF）。�
 实验证明，OAEP方案成功地将RSA从确定性加密升级为概率加密，攻击者无法区分两个不同明文的密文差异，从而有效防御了选择密文攻击（CCA）及基于统计学的侧信道分析。
 
 
-
-
 \section{结~~论}
 
 本文以RSA公钥密码体制为研究对象，构建了从“底层算子实现”到“数论攻击复现”，再到“防御机制构建”的完整技术闭环。通过一系列数学推导与代码实验，本文得出以下主要结论：
@@ -333,6 +333,27 @@ OAEP的核心组件是掩码生成函数（Mask Generation Function, MGF）。�
 第三，\textbf{概率性填充是抵御语义攻击的最后防线。}针对教科书式RSA的确定性缺陷，本文实现的OAEP方案通过引入随机预言机模型，成功阻断了ECB模式下的明文统计特征泄露。可视化实验直观地展示了，只有引入了高熵随机因子的概率加密方案，才能满足“选择明文攻击下的不可区分性”（IND-CPA）这一现代密码学安全标准。
 
 综上所述，一个健壮的RSA系统不仅需要坚实的数论基础，更依赖于严谨的工程实现标准（如PKCS\#1规范）。未来的研究工作可进一步探讨针对RSA实现的侧信道攻击（如计时攻击、功耗分析）及其防御策略，以应对物理层面的安全威胁。
+
+
+\section{总~~结}
+
+
+本报告围绕RSA公钥密码体制，完成了从底层算法实现、性能优化实验到攻击复现与防御机制构建的完整学习与实践过程。通过该项目，两位作者系统掌握了RSA从数学原理到工程实现的全过程，并通过实际编码与实验验证，加深了对密码系统安全边界与实现规范的理解。
+
+\textbf{作者许的工作与主要贡献：}
+作者许承担了本报告的主要技术实现与实验设计工作，负责整体实验方案的规划与核心代码的开发。具体包括：
+（1）从零实现RSA底层核心模块，包括Miller-Rabin素性检测、扩展欧几里得算法（并针对大整数场景进行迭代化改造）、快速模幂运算以及完整的RSA密钥生成流程；
+（2）负责RSA解密性能优化的主要实现工作，引入并实现基于中国剩余定理（CRT）的解密加速方案，设计并完成标准解密与CRT解密的系统性基准测试，对性能差异进行量化分析并整理实验结果；
+（3）负责整体代码结构设计、模块划分与实验脚本的组织与联调，保证不同算法实现、攻击实验与防御实验之间的数据一致性与可复现性；
+（4）参与RSA经典攻击与OAEP防御模块的实现与调试，对关键算法流程进行验证，并对实验现象给出工程与数学层面的解释。
+
+\textbf{作者刘的工作与主要贡献：}
+作者刘主要围绕RSA的安全分析与规范化防御机制展开工作，侧重于攻击方法学习、实验复现与论文整理，具体包括：
+（1）负责H{\aa}stad小公钥指数广播攻击与Wiener低私钥指数攻击的复现与验证，整理攻击成立条件、实验参数设置及结果分析，并完成相应实验图表的绘制；
+（2）负责基于PKCS\#1 v2.2标准的OAEP填充方案实现，完成与教科书式RSA的对比实验，验证概率性填充对模式泄露的抑制效果；
+（3）负责论文整体撰写与结构整合工作，完成攻击与防御相关章节的主要内容撰写，并协助统一全文行文风格、图表说明及参考文献格式。
+
+通过上述分工，作者许在系统搭建、核心算法实现与性能实验方面承担了主要工作量，作者刘则在攻击复现、防御机制分析与论文整理方面提供了重要支持。两位作者的协作完成了一个从“算法实现”到“安全分析”的完整学习闭环。
 
 
 \renewcommand\refname{\heiti\wuhao\centerline{参考文献}\global\def\refname{参考文献}}
